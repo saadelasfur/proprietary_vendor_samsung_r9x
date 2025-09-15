@@ -69,6 +69,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y liblz4-tool zip simg2img f2fs-tools
+          sudo cp -a tools/lpunpack /usr/bin/lpunpack && sudo chmod +x /usr/bin/lpunpack
           sudo wget -O /usr/bin/samfirm https://github.com/DavidArsene/samfirm.js/releases/download/v0.3.0/samfirm.js && sudo chmod +x /usr/bin/samfirm
 
       - name: Fetch firmware
@@ -149,7 +150,7 @@ jobs:
           simg2img super.img super_raw.img
           rm super.img
           mv super_raw.img super.img
-          python3 tools/bin/lpunpack.py -p vendor super.img .
+          lpunpack -p vendor super.img .
           rm super.img
           [[ -e vendor.img ]] && zip ${{ env.latest_shortversion }}_vendor.zip vendor.img
           [[ -e vendor.img ]] && rm vendor.img
