@@ -3,7 +3,7 @@ name: Check firmware update
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 12 * * *"
+    - cron: "0 0 * * *"
   push:
 
 jobs:
@@ -14,56 +14,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # A54X_CHN_OPEN
-          - model: "SM-A5460"
+          - model: "SM-G9900"
             csc: "CHC"
-            omc: "CHC"
-          # A54X_CHN_HK
-          - model: "SM-A5460"
-            csc: "BRI"
-            omc: "OZS"
-          # A54X_EUR_OPEN
-          - model: "SM-A546B"
-            csc: "EUX"
-            omc: "OXM"
-          # A54X_SEA_OPEN
-          - model: "SM-A546E"
+          - model: "SM-G990E"
             csc: "INS"
-            omc: "ODM"
-          - model: "SM-A546E"
-            csc: "EGY"
-            omc: "OJM"
-          - model: "SM-A546E"
-            csc: "XID"
-            omc: "OLE"
-          - model: "SM-A546E"
-            csc: "XSA"
-            omc: "OLM"
-          - model: "SM-A546E"
-            csc: "PEO"
-            omc: "OWB"
-          - model: "SM-A546E"
+          - model: "SM-G990E"
+            csc: "TUR"
+          - model: "SM-G990E"
             csc: "ZTO"
-            omc: "OWO"
-          - model: "SM-A546E"
-            csc: "SEK"
-            omc: "OXE"
-          # A54X_USA_SINGLEX
-          - model: "SM-A546U"
-            csc: "CCT"
-            omc: "OYN"
-          # A54X_USA_OPEN
-          - model: "SM-A546U1"
-            csc: "XAA"
-            omc: "OYM"
-          # A54X_CAN_SINGLE
-          - model: "SM-A546W"
-            csc: "XAC"
-            omc: "OYV"
-          # A54X_KOR_SKT
-          - model: "SM-A546S"
-            csc: "SKC"
-            omc: "SKC"
+          - model: "SM-G990B"
+            csc: "EUX"
+          - model: "SM-G990B2"
+            csc: "INS"
+          - model: "SM-G990B2"
+            csc: "TUR"
+          - model: "SM-G990B2"
+            csc: "EUX"
 
     steps:
       - name: Checkout repo
@@ -78,7 +44,7 @@ jobs:
           latest_short=`echo $latest | cut -d'/' -f1`
           latest_csc=`echo $latest | cut -d'/' -f2`
           latest_modem=`echo $latest | cut -d'/' -f3`
-          current=`cat current.${{ matrix.model }}_${{ matrix.omc }}` || need_update=1
+          current=`cat current.${{ matrix.model }}_${{ matrix.csc }}` || need_update=1
           [[ $latest != $current ]] && need_update=1
           echo "latest_version=$latest" >> $GITHUB_ENV
           echo "latest_shortversion=$latest_short" >> $GITHUB_ENV
@@ -108,20 +74,14 @@ jobs:
       - name: Fetch firmware
         if: env.need_update == 1
         run: |
-          if [[ "${{ matrix.model }}" == "SM-A5460" ]]; then
-              imei="R5CW71BXYRV"
-          elif [[ "${{ matrix.model }}" == "SM-A546B" ]]; then
-              imei="350756481234568"
-          elif [[ "${{ matrix.model }}" == "SM-A546U" ]]; then
-              imei="356044291234563"
-          elif [[ "${{ matrix.model }}" == "SM-A546U1" ]]; then
-              imei="356642731234562"
-          elif [[ "${{ matrix.model }}" == "SM-A546W" ]]; then
-              imei="351617731234569"
-          elif [[ "${{ matrix.model }}" == "SM-A546S" ]]; then
-              imei="351992291234568"
-          else
-              imei="350090711234564"
+          if [[ "${{ matrix.model }}" == "SM-G9900" ]]; then
+              imei="R5CRC35CG7V"
+          elif [[ "${{ matrix.model }}" == "SM-G990E" ]]; then
+              imei="R5CT10MHH3T"
+          elif [[ "${{ matrix.model }}" == "SM-G990B" ]]; then
+              imei="RFCRC1QL3MM"
+          elif [[ "${{ matrix.model }}" == "SM-G990B2" ]]; then
+              imei="RZCT90KL56N"
           fi
           samfirm -m ${{ matrix.model }} -r ${{ matrix.csc }} -i $imei
 
@@ -158,7 +118,7 @@ jobs:
       - name: Extract kernel images
         if: env.need_update == 1
         env:
-          FILES: boot.img.lz4 dtbo.img.lz4 init_boot.img.lz4 vbmeta.img.lz4 vendor_boot.img.lz4
+          FILES: boot.img.lz4 dtbo.img.lz4 vendor_boot.img.lz4
         run: |
           for file in $FILES; do tar xvf ${{ env.ap_tar }} ${file}; done
           tar cvf ${{ env.latest_shortversion }}_kernel.tar *.lz4
@@ -180,7 +140,7 @@ jobs:
           tar cvf ${{ env.latest_shortversion }}_patched_vbmeta.tar vbmeta.img
           rm vbmeta.img
 
-      - name: Extract vendor and vendor_dlkm partition
+      - name: Extract vendor partition
         if: env.need_update == 1
         run: |
           tar xvf ${{ env.ap_tar }} super.img.lz4
@@ -189,12 +149,10 @@ jobs:
           simg2img super.img super_raw.img
           rm super.img
           mv super_raw.img super.img
-          python3 tools/bin/lpunpack.py -p vendor,vendor_dlkm super.img .
+          python3 tools/bin/lpunpack.py -p vendor super.img .
           rm super.img
           [[ -e vendor.img ]] && zip ${{ env.latest_shortversion }}_vendor.zip vendor.img
-          [[ -e vendor_dlkm.img ]] && zip ${{ env.latest_shortversion }}_vendor_dlkm.zip vendor_dlkm.img
           [[ -e vendor.img ]] && rm vendor.img
-          [[ -e vendor_dlkm.img ]] && rm vendor_dlkm.img
 
       - name: Update current version
         if: env.need_update == 1
@@ -202,10 +160,10 @@ jobs:
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git pull origin ${{github.ref}} --ff-only
-          echo ${{ env.latest_version }} > current.${{ matrix.model }}_${{ matrix.omc }}
-          git add current.${{ matrix.model }}_${{ matrix.omc }}
+          echo ${{ env.latest_version }} > current.${{ matrix.model }}_${{ matrix.csc }}
+          git add current.${{ matrix.model }}_${{ matrix.csc }}
           git commit -m "${{ matrix.model }}: ${{ env.latest_version }}"
-          git tag "${{ env.latest_shortversion }}_${{ matrix.omc }}"
+          git tag "${{ env.latest_shortversion }}_${{ matrix.csc }}"
 
       - name: Push changes to repo
         if: env.need_update == 1
@@ -221,8 +179,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
           body_path: versions.txt
-          tag_name: "${{ env.latest_shortversion }}_${{ matrix.omc }}"
-          name: "${{ env.latest_shortversion }} - ${{ matrix.model }} - ${{ matrix.omc }}"
+          tag_name: "${{ env.latest_shortversion }}_${{ matrix.csc }}"
+          name: "${{ env.latest_shortversion }} - ${{ matrix.model }} - ${{ matrix.csc }}"
           files: |
             ${{ env.bl_tar }}
             ${{ env.cp_tar }}
@@ -231,4 +189,3 @@ jobs:
             ${{ env.pit_file }}
             ${{ env.latest_shortversion }}_patched_vbmeta.tar
             ${{ env.latest_shortversion }}_vendor.zip
-            ${{ env.latest_shortversion }}_vendor_dlkm.zip
