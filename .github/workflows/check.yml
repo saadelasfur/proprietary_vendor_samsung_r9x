@@ -52,12 +52,6 @@ jobs:
           echo "latest_modemversion=$latest_modem" >> $GITHUB_ENV
           echo "need_update=$need_update" >> $GITHUB_ENV
 
-      - name: Set up Node.js
-        if: env.need_update == 1
-        uses: actions/setup-node@v5
-        with:
-          node-version: 'latest'
-
       - name: Set up Python 3
         if: env.need_update == 1
         uses: actions/setup-python@v6
@@ -68,14 +62,10 @@ jobs:
         if: env.need_update == 1
         run: |
           sudo apt update
-          DEBIAN_FRONTEND=noninteractive sudo apt install -yq linux-modules-extra-$(uname -r) liblz4-tool zip android-sdk-libsparse-utils f2fs-tools
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq android-sdk-libsparse-utils f2fs-tools liblz4-tool linux-modules-extra-$(uname -r) python3-pip unzip zip
           sudo modprobe f2fs
           sudo cp -a tools/lpunpack /usr/bin/lpunpack && sudo chmod +x /usr/bin/lpunpack
-          git clone https://github.com/DavidArsene/samfirm.js.git && cd samfirm.js
-          npm install --silent
-          npm run --silent build
-          sudo cp -a dist/index.js /usr/bin/samfirm && sudo chmod +x /usr/bin/samfirm
-          cd .. && rm -rf samfirm.js
+          pip3 install git+https://github.com/ananjaser1211/samloader.git
 
       - name: Fetch firmware
         if: env.need_update == 1
@@ -89,7 +79,10 @@ jobs:
           elif [[ "${{ matrix.model }}" == "SM-G990B2" ]]; then
               imei="RZCT90KL56N"
           fi
-          samfirm -m ${{ matrix.model }} -r ${{ matrix.csc }} -i $imei
+          samloader -m ${{ matrix.model }} -r ${{ matrix.csc }} -i $imei download -O .
+          fwzip=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          unzip "$fwzip"
+          rm -f "$fwzip"
 
       - name: Get path of files
         if: env.need_update == 1
