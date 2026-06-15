@@ -71,15 +71,15 @@ jobs:
         if: env.need_update == 1
         run: |
           if [[ "${{ matrix.model }}" == "SM-G9900" ]]; then
-              imei="R5CRC35CG7V"
+              serial="R5CRC35CG7V"
           elif [[ "${{ matrix.model }}" == "SM-G990E" ]]; then
-              imei="R5CT10MHH3T"
+              serial="R5CT10MHH3T"
           elif [[ "${{ matrix.model }}" == "SM-G990B" ]]; then
-              imei="RFCRC1QL3MM"
+              serial="RFCRC1QL3MM"
           elif [[ "${{ matrix.model }}" == "SM-G990B2" ]]; then
-              imei="RZCT90KL56N"
+              serial="RZCT90KL56N"
           fi
-          samloader -m ${{ matrix.model }} -r ${{ matrix.csc }} -i $imei download -O .
+          samloader -m ${{ matrix.model }} -r ${{ matrix.csc }} -s $serial download -O .
           fwzip=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
           unzip "$fwzip"
           rm -f "$fwzip"
